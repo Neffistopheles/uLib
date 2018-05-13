@@ -1,0 +1,7 @@
+## Interface: 12000
+
+## Title: uLib
+## Notes: Microscopic addon lib for vanilla WoW.
+## Version: 1
+
+uLib.lua

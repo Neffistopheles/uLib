@@ -5,6 +5,8 @@
   for addon boilerplate and quick prototyping. Comparable in features to the
   core of projects like Ace, but significantly smaller and simpler.
   
+  Note that the below code is written against Lua 5.0, for WoW 1.12, not 5.1+.
+  
   Copyright (c) 2018, Anthony Eadicicco. All Rights Reserved.
   
   Permission is hereby granted, free of charge, to any person obtaining a copy

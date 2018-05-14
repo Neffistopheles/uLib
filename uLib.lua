@@ -102,7 +102,7 @@ end
 
 function lib.assertat(lvl, condition, err)
   if not condition then
-    error(tostring(err) or 'assertion failed!', tonumber(lvl) or 0)
+    error(tostring(err) or 'assertion failed!', (tonumber(lvl) or 0) + 1)
   end
 end
 

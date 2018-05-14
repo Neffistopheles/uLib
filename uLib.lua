@@ -138,7 +138,7 @@ do
     if next(timers) == nil then handler:Hide() end
   end)
   if next(timers) == nil and next(tqueue) == nil then
-    handler:Hide()
+    handler:Hide()  -- OnUpdate doesn't execute on hidden frames
   end
   
   function lib:timerreg(delay, rpt, callback)
@@ -191,7 +191,8 @@ do
       if not ev or elocks[event] then return end
       elocks[event] = true
       for callback in next, ev do
-        local succ, err = pcall(callback, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
+        local succ, err = pcall(callback, a1, a2, a3, a4, a5, a6, a7, a8, a9, 
+          a10, a11, a12)
         if not succ then lib.softerror(err) end
       end
       elocks[event] = nil

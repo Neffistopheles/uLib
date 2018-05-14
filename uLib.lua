@@ -48,6 +48,8 @@ lib.__handler = lib.__handler or CreateFrame('Frame')
 -- Addon registry
 lib.__index = lib
 function lib:newaddon(name, mod)
+  self.assertat(2, type(name) == 'string', 'bad argument #1')
+  self.assertat(2, mod == nil or type(mod) == 'string', 'bad argument #2')
   mod = mod or {}
   mod.name       = name
   mod.version    = GetAddOnMetadata(name, 'Version') or 0
@@ -60,12 +62,15 @@ end
 
 -- I/O
 function lib:print(msg, ...)
+  self.assertat(2, type(msg) == 'string', 'bad argument #1')
   msg = '|cffff7fff%s|r: ' .. msg
-  msg = string.format(msg, self.name, self.tostringall(unpack(arg)))
+  msg = string.format(msg, self.name, self.tostringallt(arg))
   DEFAULT_CHAT_FRAME:AddMessage(msg)
 end
 
 function lib:debug(lvl, msg, ...)
+  self.assertat(2, type(lvl) == 'number', 'bad argument #1')
+  self.assertat(2, type(msg) == 'string', 'bad argument #2')
   if (self.debuglevel or 0) < lvl then return end
   msg = '[Debug] ' .. msg
   self:print(msg, unpack(arg))
@@ -73,6 +78,16 @@ end
 
 
 -- Aux lib
+function lib.tostringallt(t)
+  -- `arg` table is common, and want to avoid double waste, so specialized
+  -- version to operate on array w/ n field.
+  lib.assertat(2, type(t) == 'table', 'bad argument #1')
+  for i = 1, t.n do
+    t[i] = tostring(t[i])
+  end
+  return unpack(t)
+end
+
 function lib.tostringall(...)
   for i = 1, arg.n do
     arg[i] = tostring(arg[i])
@@ -81,18 +96,22 @@ function lib.tostringall(...)
 end
 
 function lib.softerror(msg)
+  self.assertat(2, type(msg) == 'string', 'bad argument #1')
   DEFAULT_CHAT_FRAME:AddMessage('|cffff7f7fError|r: %s', msg)
+end
+
+function lib.assertat(lvl, condition, err)
+  if not condition then
+    error(tostring(err) or 'assertion failed!', tonumber(lvl) or 0)
+  end
 end
 
 
 -- Timers
 do
   local timers  = lib.__timers or {}; lib.__timers = timers
-  local tstate  = lib.__tstate or {
-    lock = false,
-    append = {},
-  }; lib.__tstate = tstate
-  local append = tstate.append
+  local tqueue  = lib.__tqueue or {}; lib.__tqueue = tqueue
+  local tstate  = lib.__tstate or { lock = false ; lib.__tstate = tstate
   local handler = lib.__handler
   
   handler:SetScript('OnUpdate', function()
@@ -112,20 +131,20 @@ do
       end
     end
     tstate.lock = false
-    for callback, data in append do
+    for callback, data in tqueue do
       timers[callback] = data
-      append[callback] = nil
+      tqueue[callback] = nil
     end
     if next(timers) == nil then handler:Hide() end
   end)
-  if next(timers) == nil and next(append) == nil then
+  if next(timers) == nil and next(tqueue) == nil then
     handler:Hide()
   end
   
   function lib:timerreg(delay, rpt, callback)
-    assert(type(delay) == 'number', 'bad argument #1')
-    assert(type(callback) == 'function', 'bad argument #2')
-    local data = timers[callback] or append[callback]
+    self.assertat(2, type(delay) == 'number', 'bad argument #1')
+    self.assertat(2, type(callback) == 'function', 'bad argument #2')
+    local data = timers[callback] or tqueue[callback]
     if data then
       -- Subsequent calls can be used to adjust the reiterating delay of an
       -- existing timer, but cannot affect how long the next invocation will
@@ -138,7 +157,7 @@ do
       rpt    = rpt and delay or nil,
     }
     if tstate.lock then
-      append[callback] = data
+      tqueue[callback] = data
     else
       timers[callback] = data
     end
@@ -146,10 +165,10 @@ do
   end
   
   function lib:timerunreg(callback)
-    assert(type(callback) == 'function', 'bad argument #1')
+    self.assertat(2, type(callback) == 'function', 'bad argument #1')
     timers[callback] = nil
-    append[callback] = nil
-    if next(timers) == nil and next(append) == nil then
+    tqueue[callback] = nil
+    if next(timers) == nil and next(tqueue) == nil then
       handler:Hide()
     end
   end
@@ -184,8 +203,8 @@ do
   )
   
   function lib:eventreg(event, callback)
-    assert(type(event) == 'string', 'bad argument #1')
-    assert(type(callback) == 'function', 'bad argument #1')
+    self.assertat(2, type(event) == 'string', 'bad argument #1')
+    self.assertat(2, type(callback) == 'function', 'bad argument #2')
     local ev, eq = events[event], equeues[event]
     if not ev then
       ev, eq = {}, {}
@@ -201,8 +220,8 @@ do
   end
   
   function lib:eventunreg(event, callback)
-    assert(type(event) == 'string', 'bad argument #1')
-    assert(type(callback) == 'function', 'bad argument #1')
+    self.assertat(2, type(event) == 'string', 'bad argument #1')
+    self.assertat(2, type(callback) == 'function', 'bad argument #2')
     local ev, eq = events[event], equeues[event]
     if ev then
       ev[callback] = nil
@@ -216,8 +235,8 @@ do
   end
   
   function lib:eventoneshot(event, callback)
-    assert(type(event) == 'string', 'bad argument #1')
-    assert(type(callback) == 'function', 'bad argument #1')
+    self.assertat(2, type(event) == 'string', 'bad argument #1')
+    self.assertat(2, type(callback) == 'function', 'bad argument #2')
     local f
     f = function(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
       self:eventunreg(event, f)

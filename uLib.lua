@@ -159,6 +159,8 @@ end
 -- Events
 do
   local events  = lib.__events or {}; lib.__events = events
+  local equeues = lib.__equeues or {}; lib.__equeues = equeues
+  local elocks  = lib.__elocks or {}; lib.__elocks = elocks
   local handler = lib.__handler
   
   handler:SetScript('OnEvent',
@@ -166,16 +168,16 @@ do
       -- Don't use `...`. This is potentially extremely spammy during combat,
       -- and construction of `arg` involves a lot of extra garbage. As of
       -- 1.12.1, no event throws more than 12 arguments.
-      local ev = events[event]
-      if not ev or ev.lock then return end
-      ev.lock = true
+      local ev, eq = events[event], equeues[event]
+      if not ev or elocks[event] then return end
+      elocks[event] = true
       for callback in next, ev do
         local succ, err = pcall(callback, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
         if not succ then lib.softerror(err) end
       end
-      ev.lock = false
-      for callback in next, ev.append do
-        ev.append[callback] = nil
+      elocks[event] = nil
+      for callback in next, eq do
+        eq[callback] = nil
         ev[callback] = true
       end
     end
@@ -184,14 +186,14 @@ do
   function lib:eventreg(event, callback)
     assert(type(event) == 'string', 'bad argument #1')
     assert(type(callback) == 'function', 'bad argument #1')
-    local ev = events[event]
+    local ev, eq = events[event], equeues[event]
     if not ev then
-      ev = { append = {}, lock = false }
-      events[event] = ev
+      ev, eq = {}, {}
+      events[event], equeues[event] = ev, eq
       handler:RegisterEvent(event)
     end
-    if ev.lock then
-      ev.append[callback] = true
+    if elocks[event] then
+      eq[callback] = true
     else
       ev[callback] = true
     end
@@ -201,12 +203,12 @@ do
   function lib:eventunreg(event, callback)
     assert(type(event) == 'string', 'bad argument #1')
     assert(type(callback) == 'function', 'bad argument #1')
-    local ev = events[event]
+    local ev, eq = events[event], equeues[event]
     if ev then
       ev[callback] = nil
-      ev.append[callback] = nil
-      if next(ev) == nil and next(ev.append) == nil then
-        events[event] = nil
+      eq[callback] = nil
+      if next(ev) == nil and next(eq) == nil then
+        events[event], qeueues[event] = nil, nil
         handler:UnregisterEvent(event)
       end
     end

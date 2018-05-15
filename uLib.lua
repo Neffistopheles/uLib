@@ -53,7 +53,7 @@ local private = lib.__private or {
   tlock   = false,
 }; lib.__private = private
 
-table.insert(loaded, version)
+table.insert(private.loaded, version)
 
 
 -- Addon registry

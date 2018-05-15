@@ -33,16 +33,17 @@ local _G = getfenv(0)
 
 
 -- Lib
-local name = 'uLib'
+local name    = 'uLib'
 local version = 0001
 
 local lib = _G[name] or {}
 if (lib.version or 0) >= version then return end
-lib.name = name
+lib.name    = name
 lib.version = version
 _G[name] = lib
 
 local private = lib.__private or {
+  loaded  = {},
   handler = CreateFrame('Frame'),
   events  = {},
   equeues = {},
@@ -51,6 +52,8 @@ local private = lib.__private or {
   tqueue  = {},
   tlock   = false,
 }; lib.__private = private
+
+table.insert(loaded, version)
 
 
 -- Addon registry

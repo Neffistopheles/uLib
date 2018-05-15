@@ -42,14 +42,22 @@ lib.name = name
 lib.version = version
 _G[name] = lib
 
-lib.__handler = lib.__handler or CreateFrame('Frame')
+local private = lib.__private or {
+  handler = CreateFrame('Frame'),
+  events  = {},
+  equeues = {},
+  elocks  = {},
+  timers  = {},
+  tqueue  = {},
+  tlock   = false,
+}; lib.__private = private
 
 
 -- Addon registry
 lib.__index = lib
 function lib:newaddon(name, mod)
   self.assertat(2, type(name) == 'string', 'bad argument #1')
-  self.assertat(2, mod == nil or type(mod) == 'string', 'bad argument #2')
+  self.assertat(2, mod == nil or type(mod) == 'table', 'bad argument #2')
   mod = mod or {}
   mod.name       = name
   mod.version    = GetAddOnMetadata(name, 'Version') or 0
@@ -109,14 +117,13 @@ end
 
 -- Timers
 do
-  local timers  = lib.__timers or {}; lib.__timers = timers
-  local tqueue  = lib.__tqueue or {}; lib.__tqueue = tqueue
-  local tstate  = lib.__tstate or { lock = false ; lib.__tstate = tstate
-  local handler = lib.__handler
+  local timers  = private.timers
+  local tqueue  = private.tqueue
+  local handler = private.handler
   
   handler:SetScript('OnUpdate', function()
     local now = GetTime()
-    tstate.lock = true
+    private.tlock = true
     for callback, data in next, timers do
       local fireat = data.fireat
       local rpt    = data.rpt
@@ -130,7 +137,7 @@ do
         end
       end
     end
-    tstate.lock = false
+    private.tlock = false
     for callback, data in tqueue do
       timers[callback] = data
       tqueue[callback] = nil
@@ -177,10 +184,10 @@ end
 
 -- Events
 do
-  local events  = lib.__events or {}; lib.__events = events
-  local equeues = lib.__equeues or {}; lib.__equeues = equeues
-  local elocks  = lib.__elocks or {}; lib.__elocks = elocks
-  local handler = lib.__handler
+  local events  = private.events
+  local equeues = private.equeues
+  local elocks  = private.elocks
+  local handler = private.handler
   
   handler:SetScript('OnEvent',
     function(event, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)

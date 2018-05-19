@@ -66,7 +66,7 @@ function lib:newaddon(name, mod)
   mod.version    = GetAddOnMetadata(name, 'Version') or 0
   mod.path       = string.format([[Interface\AddOns\%s\]], name)
   mod.debuglevel = 0
-  _G[name] = setmetatable(mod, lib)
+  setmetatable(mod, lib)
   return mod
 end
 

@@ -128,13 +128,12 @@ do
     local now = GetTime()
     private.tlock = true
     for callback, data in next, timers do
-      local fireat = data.fireat
-      local rpt    = data.rpt
+      local fireat, rpt = data[1], data[2]
       if fireat <= now then
         local succ, err = pcall(callback)
-        if not succ then lib.softerror(err)  end
+        if not succ then lib.softerror(err) end
         if rpt then
-          data.fireat = fireat + rpt
+          data[1] = fireat + rpt
         else
           timers[callback] = nil
         end
@@ -142,8 +141,7 @@ do
     end
     private.tlock = false
     for callback, data in tqueue do
-      timers[callback] = data
-      tqueue[callback] = nil
+      timers[callback], tqueue[callback] = data, nil
     end
     if next(timers) == nil then handler:Hide() end
   end)
@@ -159,25 +157,17 @@ do
       -- Subsequent calls can be used to adjust the reiterating delay of an
       -- existing timer, but cannot affect how long the next invocation will
       -- take.
-      data.rpt = rpt and delay
+      data[2] = rpt and delay
       return
     end
-    data = {
-      fireat = GetTime() + delay,
-      rpt    = rpt and delay or nil,
-    }
-    if tstate.lock then
-      tqueue[callback] = data
-    else
-      timers[callback] = data
-    end
+    data = { GetTime() + delay, rpt and delay or nil }
+    (private.tlock and tqueue or timers)[callback] = data
     handler:Show()
   end
   
   function lib:timerunreg(callback)
     self.assertat(2, type(callback) == 'function', 'bad argument #1')
-    timers[callback] = nil
-    tqueue[callback] = nil
+    timers[callback], tqueue[callback] = nil, nil
     if next(timers) == nil and next(tqueue) == nil then
       handler:Hide()
     end
@@ -193,7 +183,7 @@ do
   local handler = private.handler
   
   handler:SetScript('OnEvent',
-    function(event, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
+    function(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
       -- Don't use `...`. This is potentially extremely spammy during combat,
       -- and construction of `arg` involves a lot of extra garbage. As of
       -- 1.12.1, no event throws more than 12 arguments.
@@ -207,8 +197,7 @@ do
       end
       elocks[event] = nil
       for callback in next, eq do
-        eq[callback] = nil
-        ev[callback] = true
+        ev[callback], eq[callback] = true, nil
       end
     end
   )
@@ -222,11 +211,7 @@ do
       events[event], equeues[event] = ev, eq
       handler:RegisterEvent(event)
     end
-    if elocks[event] then
-      eq[callback] = true
-    else
-      ev[callback] = true
-    end
+    (elocks[event] and eq or ev)[callback] = true
     return callback
   end
   
@@ -235,8 +220,7 @@ do
     self.assertat(2, type(callback) == 'function', 'bad argument #2')
     local ev, eq = events[event], equeues[event]
     if ev then
-      ev[callback] = nil
-      eq[callback] = nil
+      ev[callback], eq[callback] = nil, nil
       if next(ev) == nil and next(eq) == nil then
         events[event], qeueues[event] = nil, nil
         handler:UnregisterEvent(event)
